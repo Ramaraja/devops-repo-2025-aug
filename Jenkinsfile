@@ -1,9 +1,10 @@
 pipeline {
-    agent any
+    agent { docker { image 'python:3.12.0-alpine3.18' } }
     stages {
-        stage('Clone Repository') {
+        stage('Setting up env') {
             steps {
-                git url: 'https://github.com/ramaraja/devops-repo-2025-aug.git'
+                    sh 'python3 -m venv venv'
+                    sh '. venv/bin/activate && pip install -r sample-project-1/requirements.txt'      
             }
         }
     }
