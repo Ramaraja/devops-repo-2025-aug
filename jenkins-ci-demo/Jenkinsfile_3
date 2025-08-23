@@ -1,0 +1,57 @@
+pipeline {
+    agent { docker { image 'python:3.12.0-alpine3.18' } }
+
+    environment {
+        VENV_DIR = "${WORKSPACE}/venv"
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                git branch: 'main', url: 'https://github.com/youruser/yourrepo.git'
+            }
+        }
+
+        stage('Setup Python Env') {
+            steps {
+                dir('jenkins-ci-demo') {
+                    sh '''
+                        python3 -m venv ${VENV_DIR}
+                        . ${VENV_DIR}/bin/activate
+                        pip install --upgrade pip
+                        pip install -r requirements.txt
+                        pip install pytest pytest-cov flake8
+                    '''
+                }
+            }
+        }
+
+        stage('Lint') {
+            steps {
+                dir('jenkins-ci-demo') {
+                    sh '''
+                        . ${VENV_DIR}/bin/activate
+                        flake8 . --max-line-length=100
+                    '''
+                }
+            }
+        }
+
+        stage('Unit Tests with Coverage') {
+            steps {
+                dir('jenkins-ci-demo') {
+                    sh '''
+                        . ${VENV_DIR}/bin/activate
+                        pytest --junitxml=test-results.xml --cov=app --cov-report=xml
+                    '''
+                }
+            }
+            post {
+                always {
+                    junit 'jenkins-ci-demo/test-results.xml'
+                    publishCoverage adapters: [coberturaAdapter('jenkins-ci-demo/coverage.xml')]
+                }
+            }
+        }
+    }
+}

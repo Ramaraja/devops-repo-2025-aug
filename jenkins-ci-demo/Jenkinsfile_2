@@ -1,0 +1,62 @@
+pipeline {
+    agent { docker { image 'python:3.12.0-alpine3.18' } }
+
+    parameters {
+        string(name: 'BRANCH_NAME', defaultValue: 'main', description: 'Git branch to build')
+        choice(name: 'DEPLOY_ENV', choices: ['dev', 'staging', 'prod'], description: 'Select the environment')
+        booleanParam(name: 'RUN_TESTS', defaultValue: true, description: 'Run unit tests?')
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                echo "Checking out branch: ${params.BRANCH_NAME}"
+                git branch: "${params.BRANCH_NAME}", url: 'https://github.com/Ramaraja/devops-repo-2025-aug.git'
+            }
+        }
+
+        stage('Install Dependencies') {
+            steps {
+                dir('jenkins-ci-demo') {
+                    sh 'pip install -r requirements.txt'
+                }
+            }
+        }
+
+        stage('Run Tests') {
+            when {
+                expression { params.RUN_TESTS }
+            }
+            steps {
+                dir('jenkins-ci-demo') {
+                    echo "Running unit tests..."
+                    sh 'pytest --maxfail=1 --disable-warnings -q'
+                }
+            }
+        }
+
+        stage('Build/Deploy') {
+            steps {
+                script {
+                    echo "Deploying to ${params.DEPLOY_ENV} environment"
+                    if (params.DEPLOY_ENV == 'dev') {
+                        sh 'echo "Running lightweight deployment steps for DEV"'
+                    } else if (params.DEPLOY_ENV == 'staging') {
+                        sh 'echo "Running staging deployment steps"'
+                    } else {
+                        sh 'echo "Running PRODUCTION deployment!"'
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "Build succeeded on branch ${params.BRANCH_NAME} for environment ${params.DEPLOY_ENV}"
+        }
+        failure {
+            echo "Build failed! Please check logs."
+        }
+    }
+}
