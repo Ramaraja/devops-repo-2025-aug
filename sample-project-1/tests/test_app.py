@@ -12,5 +12,5 @@ def test_subtract():
     assert subtract(0, 3) == -3
 
 # To demonstrate a failing test (optional)
-def test_fail():
-    assert subtract(2, 2) == 3  # This will fail
+# def test_fail():
+#     assert subtract(2, 2) == 3  # This will fail
